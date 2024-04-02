@@ -77,36 +77,6 @@ pid_calculation();
 
 Motor_Drive();
 
-// if(currmillis-lastSerialPlot>interval){
-// Serial.print("Elapsed time:");
-// Serial.print(currmillis/1000);
-// Serial.print(",");
-// Serial.print("position pulses:");
-// Serial.print(pos);
-// Serial.print(" ");
-// Serial.print("position:");
-// Serial.print(pos_angle);
-// Serial.print(" ");
-// Serial.print("prevtarget:");
-// Serial.print(prevtarget);
-// Serial.print(" ");
-// Serial.print("prev_angle:");
-// Serial.print(target_angle[0]);
-// Serial.print(" ");
-// Serial.print("Target:");
-// Serial.print(target);
-// Serial.print(" ");
-// Serial.print("t_angle:");
-// Serial.print(target_angle[1]);
-// Serial.print(" ");
-// Serial.print("u:");
-// Serial.print(u);
-// Serial.print(" ");
-// Serial.print("error:");
-// Serial.println(pos_angle-target_angle[1]);
-// lastSerialPlot=currmillis;
-// }
-
 SD_write();
 
 }
