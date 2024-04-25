@@ -2,10 +2,12 @@
 #define __PID_FUNCTIONS_H
 
 extern volatile int pos;
+extern volatile int u;
+extern volatile int pass;
 extern int pin1;
 extern int pin2;
 extern int pwm_pin;
-extern int target_angle;
+extern volatile int target_angle;
 extern int ENC_PIN1;
 extern int ENC_PIN2;
 
