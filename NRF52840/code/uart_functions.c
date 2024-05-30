@@ -1,60 +1,87 @@
-#include "nrf52840.h"
-#include <nrf.h>
-#include "gpio_functions.h"
-#include "stdio.h"
+#include "app_uart.h"
+#include "app_error.h"
+#include "nrf_uart.h"
+#include "nrf_delay.h"
+#include "pid_functions.h"
 #include "string.h"
+extern volatile int target_angle;
 
-extern volatile uint8_t read_size;
+#define MAX_TEST_DATA_BYTES     (15U)                /**< max number of test bytes to be used for tx and rx. */
+#define UART_TX_BUF_SIZE 256                         /**< UART TX buffer size. */
+#define UART_RX_BUF_SIZE 256                       /**< UART RX buffer size. */
 
-void uart_config(int rxd,int txd){
-  NRF_P0->PIN_CNF[rxd]|=(GPIO_PIN_CNF_DIR_Input<<GPIO_PIN_CNF_DIR_Pos);
-  NRF_P0->PIN_CNF[txd]|=(GPIO_PIN_CNF_DIR_Output<<GPIO_PIN_CNF_DIR_Pos);
-  NRF_UART0->PSEL.RXD=(rxd<<UART_PSEL_RXD_PIN_Pos)|(UART_PSEL_RXD_CONNECT_Connected<<UART_PSEL_RXD_CONNECT_Pos);
-  NRF_UART0->PSEL.TXD=(txd<<UART_PSEL_TXD_PIN_Pos)|(UART_PSEL_TXD_CONNECT_Connected<<UART_PSEL_TXD_CONNECT_Pos);
-  NRF_CLOCK->TASKS_HFCLKSTART=1;
-  while(NRF_CLOCK->EVENTS_HFCLKSTARTED==0){};
-  int mask=(1UL<<16);
-  if(NRF_CLOCK->EVENTS_HFCLKSTARTED==1){printf("oscillator started\n");}
-  int clk_src=(NRF_CLOCK->HFCLKSTAT& 0b1);
-  printf("closk source %d\n",clk_src);
-  while((NRF_CLOCK->HFCLKSTAT &mask)==0){printf("waiting for clock to run\n");};
-  NRF_UART0->CONFIG|=(UART_CONFIG_HWFC_Disabled<<UART_CONFIG_HWFC_Pos)|(UART_CONFIG_PARITY_Excluded<<UART_CONFIG_PARITY_Pos)|
-                          (UART_CONFIG_STOP_One<<UART_CONFIG_STOP_Pos);
+#define RX_PIN_NUMBER 11 
+#define TX_PIN_NUMBER 12 
 
-  NRF_UART0->BAUDRATE=(UART_BAUDRATE_BAUDRATE_Baud115200<<UART_BAUDRATE_BAUDRATE_Pos);//115200 baudrate
-  NRF_UART0->INTENSET=(UART_INTENSET_RXDRDY_Set<<UART_INTENSET_RXDRDY_Pos);
-  NRF_UART0->ENABLE=(UART_ENABLE_ENABLE_Enabled<<UART_ENABLE_ENABLE_Pos); //enable UARTE
-}
+void uart_event_handler(app_uart_evt_t * p_event)
+    {
+        static uint8_t data_array[32];
+        static uint8_t index = 0;
+       
+       // event occurs in peripheral
+        switch (p_event->evt_type)
+        {
+            // when byte arrives at FIFO
+            case APP_UART_DATA_READY: 
+                // store the byte to an array 
+                app_uart_get(&data_array[index]); 
+                index++;
+                // if it is the end of the message
+                if (data_array[index - 1] == '\r') 
+                {  
+                    target_angle=0;
+                    for (uint32_t i = 0; i < strlen((const char *)data_array); i++)
+                    {
+                        target_angle=target_angle*10+data_array[i]-'0';
+                        //transmit the whole message -->print it to the terminal
+                        while (app_uart_put(data_array[i]) != NRF_SUCCESS);
+                    }
+                    // update the desired angle
+                    target_angle-=(data_array[index-1]-'0');
+                    target_angle/=10;
+                    memset(data_array,0,sizeof(data_array));
+                    index = 0;
+                }
+                break;
 
- void uart_write(char* write_buffer){
-  NRF_UART0->TASKS_STARTTX=1;
-  write_buffer[read_size]=10;
-  for(int i=0;i<=read_size;i++){
-   NRF_UART0->TXD=(write_buffer[i]);
-   while(NRF_UART0->EVENTS_TXDRDY==0){};
-   NRF_UART0->EVENTS_TXDRDY=0;
-  }
- }
+            case APP_UART_COMMUNICATION_ERROR:
+                APP_ERROR_HANDLER(p_event->data.error_communication);
+                break;
 
+            case APP_UART_FIFO_ERROR:
+                APP_ERROR_HANDLER(p_event->data.error_code);
+                break;
 
-
-
- void uart_read(uint32_t read_buffer[]){
-   NRF_UART0->TASKS_STARTRX=1;
-   while(NRF_UART0->EVENTS_RXDRDY==0){}
-    NRF_UART0->EVENTS_RXDRDY=0;
-    int i=0;
-    while(i<4){
-     read_buffer[i]=NRF_UART0->RXD;
-     if(read_buffer[i]=='\r'){
-       NRF_UART0->TASKS_STOPRX=1;
-       read_size=i;
-        break;
-      }
-     i++;
-    while(NRF_UART0->EVENTS_RXDRDY==0){}
-    NRF_UART0->EVENTS_RXDRDY=0;
+            default:
+                break;
+        }
     }
 
+
+void uart_init(void)
+ {
+   uint32_t err_code;
+   //initialie the uart instance
+ const app_uart_comm_params_t comm_params = 
+      {
+          RX_PIN_NUMBER,
+          TX_PIN_NUMBER,
+          NULL,
+          NULL,
+         APP_UART_FLOW_CONTROL_DISABLED, // no flow control
+          false,                         // no parity bit
+         NRF_UART_BAUDRATE_115200        // 115200 baud rate
+      };
+
+    APP_UART_FIFO_INIT(&comm_params,
+                         UART_RX_BUF_SIZE,
+                         UART_TX_BUF_SIZE,
+                         uart_event_handler,              
+                         APP_IRQ_PRIORITY_LOWEST,
+                         err_code);
+
+    APP_ERROR_CHECK(err_code);
+
  }
+
 

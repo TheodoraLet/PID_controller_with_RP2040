@@ -1,13 +1,15 @@
 #ifndef __UART_FUNCTIONS_H
 #define __UART_FUNCTIONS_H
 
-#include "stdint.h"
-extern volatile uint8_t read_size;
+#include "app_uart.h"
 
-void uart_write(char write_buffer[]);
+void uart_event_handler(app_uart_evt_t * p_even);
 
-void uart_read(uint32_t read_buffer[]);
 
-void uart_config(int rxd,int txd);
+void uart_init(void);
+
+
+
+ 
 
 #endif // __UART_FUNCTONS_H
