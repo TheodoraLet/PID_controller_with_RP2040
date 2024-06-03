@@ -18,4 +18,6 @@ void enc_pin(int pin_number1,int port,int pin_number2){
   NVIC_ClearPendingIRQ(GPIOTE_IRQn);
   // enable GPIOTE interrupt
   NVIC_EnableIRQ(GPIOTE_IRQn);
+  // let control have highest priority
+  NVIC_SetPriority(GPIOTE_IRQn,1);
 }

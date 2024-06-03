@@ -16,18 +16,13 @@
 #include "nrf_uart.h"
 #include "nrf_delay.h"
 
-#define pwm_pin 8
-#define pin1 27
-#define pin2 6
-
 
 int main(void)
 {
    __enable_irq();
    // initialize uart driver
-   uart_init();
-
-    
+    uart_init();
+ 
     int port=0;
     // initialize fatfs 
     fatfs_initialization();
@@ -44,9 +39,8 @@ int main(void)
     timer_init(3,2);
     // initialize encoder pins and GPIOTE event
     enc_pin(ENC_PIN1,port,ENC_PIN2);
-
+   
      while(1){
-     
      // calculate position and error
       pid_calculations();
  
@@ -55,6 +49,7 @@ int main(void)
 
      // write data to file 
       fatfs_write();
+
      }
 }
 

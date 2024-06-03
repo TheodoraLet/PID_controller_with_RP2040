@@ -77,7 +77,7 @@ void uart_init(void)
                          UART_RX_BUF_SIZE,
                          UART_TX_BUF_SIZE,
                          uart_event_handler,              
-                         APP_IRQ_PRIORITY_LOWEST,
+                         APP_IRQ_PRIORITY_LOW,// set low priority 
                          err_code);
 
     APP_ERROR_CHECK(err_code);
